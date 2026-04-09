@@ -1,26 +1,77 @@
 @import "tailwindcss";
+@import "reactflow/dist/style.css";
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --canvas-bg: #f8fafc;
+  --sidebar-bg: #ffffff;
+  --node-bg: #ffffff;
+  --node-border: #e2e8f0;
+  --edge-color: #8b5cf6;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-canvas: var(--canvas-bg);
+  --color-sidebar: var(--sidebar-bg);
+  --color-node: var(--node-bg);
+  --color-node-border: var(--node-border);
+  --color-edge: var(--edge-color);
+  
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* React Flow custom styles to match Weavy */
+.react-flow__pane {
+  background-color: var(--canvas-bg);
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+  stroke: var(--edge-color);
+}
+
+.react-flow__controls {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  border: none;
+}
+
+.react-flow__controls-button {
+  background: white;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.react-flow__minimap {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.react-flow__node {
+  border-radius: 12px;
+  border: 1px solid var(--node-border);
+  background: var(--node-bg);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  padding: 0;
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background-color: var(--primary);
+  border: 2px solid white;
 }
