@@ -50,7 +50,11 @@ You already have a `DATABASE_URL` in `.env` pointing at a Prisma Postgres instan
 Either way, after the project is wired up you'll run a one-time push from your laptop to apply the schema:
 
 ```bash
-# From the repo root, with the new DATABASE_URL in .env.local
+# .env.local at the repo root needs both env vars (copy from Vercel's
+# Storage → your-database → ".env.local" tab):
+#   PRISMA_DATABASE_URL="prisma+postgres://..."
+#   POSTGRES_URL="postgres://..."
+# Then:
 npx prisma db push
 ```
 
@@ -87,8 +91,10 @@ In the Vercel project, **Settings → Environment Variables**, add the following
 
 | Name | Value | Scope | Notes |
 |---|---|---|---|
-| `DATABASE_URL` | your rotated Postgres URL | All envs | Required. Without this every API route 500s. |
-| `NEXT_PUBLIC_SITE_URL` | `https://weavy-clone.vishalkumarroy.xyz` | Production only | Needed so OG / Twitter image URLs resolve to absolute https URLs that Facebook/X/Slack/Discord can fetch. For Preview, leave unset — the layout falls back to `https://${VERCEL_URL}` which Vercel sets automatically. |
+| `PRISMA_DATABASE_URL` | your pooled Postgres URL (`prisma+postgres://…`) | All envs | Auto-injected when you connect a Vercel Postgres DB to the project. Used at runtime by the Prisma Client. |
+| `POSTGRES_URL` | your direct Postgres URL (`postgres://…`) | All envs | Auto-injected. Used by `prisma db push` / migrations as `directUrl`. |
+| `NEXT_PUBLIC_SITE_URL` | `https://weavy-clone.vishalkumarroy.xyz` | Production only | Needed so OG / Twitter image URLs resolve to absolute https URLs that Facebook/X/Slack/Discord can fetch. For Preview, leave unset — the layout falls back to `https://${VERCEL_URL}`. |
+| *(do not set)* `DATABASE_URL` | — | — | The schema reads `PRISMA_DATABASE_URL` and `POSTGRES_URL` directly. A `DATABASE_URL` var would be ignored. |
 | *(do not set)* `GEMINI_API_KEY` | — | — | The product is BYOK (issue 003 — keys live in the user's browser). The server explicitly does not read env keys. Setting this would be dead config. |
 | *(do not set)* `OPENAI_API_KEY` | — | — | Same as above. |
 
@@ -194,8 +200,9 @@ These are tracked in `issues/` and become more pressing once real users land:
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Build fails on `prisma generate` step | `DATABASE_URL` not set or unreachable | Step 3. The build doesn't *connect* to Postgres but Prisma needs the URL syntactically valid. |
-| `500` on every `/api/workflow/*` call | Schema not pushed to Postgres | Run `npx prisma db push` from your laptop with the prod `DATABASE_URL`. |
+| Build fails on `prisma generate` step | DB env vars missing | Step 3. `prisma generate` doesn't *connect* but it parses the schema. |
+| `500` with `Environment variable not found: DATABASE_URL` | Schema is reading the wrong env var name | Already fixed in `prisma/schema.prisma` — it now reads `PRISMA_DATABASE_URL` and `POSTGRES_URL`, which are the names Vercel's integration creates. Pull the latest commit and redeploy. |
+| `500` on every `/api/workflow/*` call | Schema not pushed to Postgres | Run `npx prisma db push` from your laptop with `PRISMA_DATABASE_URL` and `POSTGRES_URL` in `.env.local`. |
 | Landing loads but `/app` blanks | Browser still has localStorage from a stale build | Open DevTools → Application → Storage → Clear site data → reload. |
 | Run node 504s on Gemini calls | `maxDuration = 60` not picked up | Check `src/app/api/workflow/run/route.ts:8` — it must be `export const maxDuration = 60`. Then redeploy. |
 | OG card shows the wrong URL on Slack | `NEXT_PUBLIC_SITE_URL` still points at a preview URL | Set it to `https://weavy-clone.vishalkumarroy.xyz` and redeploy. |

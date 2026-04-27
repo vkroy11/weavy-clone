@@ -8,10 +8,14 @@ generator client {
 datasource db {
   // Postgres for both dev and prod. Vercel's serverless runtime has no
   // persistent filesystem, so SQLite is not an option for the deployed app.
-  // The DATABASE_URL is read from .env.local in dev and from Vercel project
-  // env vars in prod.
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  //
+  // Vercel's Prisma-integrated Postgres exposes two env vars:
+  //   PRISMA_DATABASE_URL — pooled (Accelerate) URL, used at runtime
+  //   POSTGRES_URL        — direct, non-pooled URL, used for migrations
+  // Both are auto-injected when the DB is connected to the project.
+  provider  = "postgresql"
+  url       = env("PRISMA_DATABASE_URL")
+  directUrl = env("POSTGRES_URL")
 }
 
 model Workflow {
