@@ -12,9 +12,15 @@ datasource db {
 
 model Workflow {
   id        String   @id @default(cuid())
+  // Per-browser identity. Set by the client (UUID v4 in localStorage).
+  // Workflows are scoped to a clientId so each browser sees only its own.
+  // Nullable for backward-compat with rows created before this column existed.
+  clientId  String?
   name      String
   nodes     Json
   edges     Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([clientId, updatedAt])
 }

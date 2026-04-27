@@ -9,12 +9,23 @@ import ReactFlow, {
   ReactFlowProvider,
 } from 'reactflow';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
-import { useWorkflowExecution } from '@/hooks/useWorkflowExecution';
-import { Undo2, Redo2, Download, Upload, Play, Save, Settings } from 'lucide-react';
+import { useAutoSave } from '@/hooks/useAutoSave';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  Loader2,
+  Redo2,
+  Settings,
+  Undo2,
+  Upload,
+} from 'lucide-react';
 import { SettingsModal } from '../settings/SettingsModal';
+import { SessionsDropdown } from '../sessions/SessionsDropdown';
 import { TextNode } from '../nodes/TextNode';
 import { ImageNode } from '../nodes/ImageNode';
 import { LLMNode } from '../nodes/LLMNode';
+import { relativeTime } from '../sessions/relativeTime';
 
 const nodeTypes = {
   textNode: TextNode,
@@ -22,31 +33,77 @@ const nodeTypes = {
   llmNode: LLMNode,
 };
 
+function SaveStatusPill() {
+  const saveState = useWorkflowStore((s) => s.saveState);
+  const lastSavedAt = useWorkflowStore((s) => s.lastSavedAt);
+  const saveError = useWorkflowStore((s) => s.saveError);
+
+  if (saveState === 'saving') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-canvas px-2.5 py-1 text-[11px] font-medium text-gray-500">
+        <Loader2 size={11} className="animate-spin" aria-hidden="true" />
+        Saving…
+      </span>
+    );
+  }
+  if (saveState === 'error') {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-600"
+        title={saveError ?? undefined}
+      >
+        <AlertTriangle size={11} aria-hidden="true" />
+        Save failed
+      </span>
+    );
+  }
+  if (saveState === 'saved' && lastSavedAt) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-canvas px-2.5 py-1 text-[11px] font-medium text-gray-500">
+        <CheckCircle2 size={11} className="text-green-500" aria-hidden="true" />
+        Saved {relativeTime(lastSavedAt)}
+      </span>
+    );
+  }
+  if (saveState === 'dirty') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-canvas px-2.5 py-1 text-[11px] font-medium text-gray-500">
+        Editing…
+      </span>
+    );
+  }
+  return null;
+}
+
 const WorkflowCanvas = () => {
+  useAutoSave();
   const [showSettings, setShowSettings] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { 
-    nodes, 
-    edges, 
-    onNodesChange, 
-    onEdgesChange, 
-    onConnect, 
-    undo, 
-    redo, 
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    undo,
+    redo,
     addNode,
     setNodes,
     setEdges,
+    currentWorkflowName,
+    setCurrentWorkflowName,
   } = useWorkflowStore();
-  const { runWorkflow } = useWorkflowExecution();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const exportToJson = () => {
-    const data = { nodes, edges };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const data = { name: currentWorkflowName, nodes, edges };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `workflow-${Date.now()}.json`;
+    link.download = `${currentWorkflowName.replace(/\s+/g, '-').toLowerCase()}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -61,31 +118,15 @@ const WorkflowCanvas = () => {
           if (data.nodes && data.edges) {
             setNodes(data.nodes);
             setEdges(data.edges);
+            if (typeof data.name === 'string' && data.name.trim()) {
+              setCurrentWorkflowName(data.name.trim());
+            }
           }
         } catch (err) {
           console.error('Failed to import JSON', err);
         }
       };
       reader.readAsText(file);
-    }
-  };
-
-  const saveToDb = async () => {
-    try {
-      const response = await fetch('/api/workflow/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'My Workflow',
-          nodes,
-          edges,
-        }),
-      });
-      if (response.ok) {
-        alert('Workflow saved successfully!');
-      }
-    } catch (err) {
-      console.error('Failed to save to DB', err);
     }
   };
 
@@ -111,7 +152,7 @@ const WorkflowCanvas = () => {
 
       addNode(newNode);
     },
-    [addNode]
+    [addNode],
   );
 
   return (
@@ -127,48 +168,85 @@ const WorkflowCanvas = () => {
         nodeTypes={nodeTypes}
         fitView
       >
-        <Background gap={20} color="#cbd5e1" variant={'dots' as any} />
-        <Controls position="bottom-left" className="!bg-white !border-node-border !shadow-lg !rounded-lg overflow-hidden" />
-        <MiniMap position="bottom-right" className="!bg-white !border-node-border !shadow-lg !rounded-lg" />
-        
-        <Panel position="top-right" className="flex items-center gap-2 bg-white/80 backdrop-blur-md p-1.5 rounded-2xl shadow-xl border border-node-border m-4">
-          <div className="flex gap-1 pr-2 border-r border-node-border">
-            <button onClick={undo} className="p-2 hover:bg-canvas rounded-xl transition-all" title="Undo">
+        <Background gap={20} color="#cbd5e1" variant={'dots' as 'dots'} />
+        <Controls
+          position="bottom-left"
+          className="!bg-white !border-node-border !shadow-lg !rounded-lg overflow-hidden"
+        />
+        <MiniMap
+          position="bottom-right"
+          className="!bg-white !border-node-border !shadow-lg !rounded-lg"
+        />
+
+        {/* Top-left: workflow name + save status */}
+        <Panel
+          position="top-left"
+          className="m-4 flex max-w-md items-center gap-2 rounded-2xl border border-node-border bg-white/85 p-1.5 shadow-xl backdrop-blur-md"
+        >
+          <input
+            type="text"
+            value={currentWorkflowName}
+            onChange={(e) => setCurrentWorkflowName(e.target.value)}
+            placeholder="Workflow name"
+            aria-label="Workflow name"
+            className="min-w-0 flex-1 rounded-xl bg-transparent px-2.5 py-1.5 text-sm font-semibold text-gray-800 focus:bg-canvas focus:outline-none"
+            spellCheck={false}
+            maxLength={120}
+          />
+          <SaveStatusPill />
+        </Panel>
+
+        {/* Top-right: action toolbar */}
+        <Panel
+          position="top-right"
+          className="m-4 flex items-center gap-2 rounded-2xl border border-node-border bg-white/80 p-1.5 shadow-xl backdrop-blur-md"
+        >
+          <div className="flex gap-1 border-r border-node-border pr-2">
+            <button
+              onClick={undo}
+              className="rounded-xl p-2 transition-all hover:bg-canvas"
+              title="Undo"
+            >
               <Undo2 size={18} className="text-gray-600" />
             </button>
-            <button onClick={redo} className="p-2 hover:bg-canvas rounded-xl transition-all" title="Redo">
+            <button
+              onClick={redo}
+              className="rounded-xl p-2 transition-all hover:bg-canvas"
+              title="Redo"
+            >
               <Redo2 size={18} className="text-gray-600" />
             </button>
           </div>
           <div className="flex gap-1 px-1">
-            <button onClick={() => fileInputRef.current?.click()} className="p-2 hover:bg-canvas rounded-xl transition-all" title="Import">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-xl p-2 transition-all hover:bg-canvas"
+              title="Import JSON"
+            >
               <Upload size={18} className="text-gray-600" />
-              <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={importFromJson} />
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".json"
+                onChange={importFromJson}
+              />
             </button>
-            <button onClick={exportToJson} className="p-2 hover:bg-canvas rounded-xl transition-all" title="Export">
+            <button
+              onClick={exportToJson}
+              className="rounded-xl p-2 transition-all hover:bg-canvas"
+              title="Export JSON"
+            >
               <Download size={18} className="text-gray-600" />
             </button>
           </div>
-          <button
-            onClick={saveToDb}
-            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-canvas rounded-xl transition-all"
-            title="Save to Database"
-          >
-            <Save size={18} />
-          </button>
+          <SessionsDropdown />
           <button
             onClick={() => setShowSettings(true)}
-            className="p-2 hover:bg-canvas rounded-xl transition-all"
+            className="rounded-xl p-2 transition-all hover:bg-canvas"
             title="API Key Settings"
           >
             <Settings size={18} className="text-gray-600" />
-          </button>
-          <button
-            onClick={runWorkflow}
-            className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2 active:scale-95 ml-2"
-          >
-            <Play size={16} fill="white" />
-            Run Flow
           </button>
         </Panel>
       </ReactFlow>

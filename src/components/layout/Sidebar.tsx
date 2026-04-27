@@ -28,7 +28,7 @@ const Sidebar = () => {
   return (
     <aside className={`${isOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-white border-r border-node-border h-screen flex flex-col relative z-50`}>
       <div className="p-4 border-b border-node-border flex items-center justify-between">
-        {isOpen && <h2 className="font-bold text-lg text-primary tracking-tight">Weavy AI</h2>}
+        {isOpen &&<a href="/" className="flex items-center gap-2"> <h2 className="font-bold text-lg text-primary tracking-tight">Weavy AI</h2></a>}
         <button 
           onClick={() => setIsOpen(!isOpen)} 
           className="p-1.5 hover:bg-canvas rounded-lg transition-colors border border-transparent hover:border-node-border"

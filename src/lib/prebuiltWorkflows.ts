@@ -16,10 +16,13 @@ export const PRODUCT_LISTING_GENERATOR = {
       id: 'generator',
       type: 'llmNode',
       position: { x: 450, y: 250 },
-      data: { 
-        label: 'eBay Listing Generator', 
-        model: 'gemini-1.5-flash',
-        systemPrompt: 'You are an expert e-commerce copywriter. Create a compelling eBay listing including a title, key features, and a persuasive description based on the provided inputs.'
+      data: {
+        label: 'Product Hero Image',
+        // Leave model unset so LLMNode picks the first available image model
+        // for whichever provider the user has a key for. Hardcoding a model id
+        // here breaks every time the registry changes.
+        systemPrompt:
+          'Studio product photography, clean white background, soft directional lighting, subtle reflection beneath the product, premium e-commerce hero look. Centred, square framing, minimal shadow, high detail.',
       },
     },
   ],
