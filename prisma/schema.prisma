@@ -6,8 +6,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  // Postgres for both dev and prod. Vercel's serverless runtime has no
+  // persistent filesystem, so SQLite is not an option for the deployed app.
+  // The DATABASE_URL is read from .env.local in dev and from Vercel project
+  // env vars in prod.
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Workflow {

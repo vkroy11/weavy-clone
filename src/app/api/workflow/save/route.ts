@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { SaveWorkflowSchema } from '@/lib/schemas';
 
@@ -21,7 +22,17 @@ export async function POST(req: NextRequest) {
     // Branch on id presence. The previous `upsert` with `where: { id: id || '' }`
     // always failed the lookup when id was undefined and silently created a
     // new row each save, producing duplicates (issue 010).
-    const data = { clientId, name, nodes, edges };
+    //
+    // Postgres' Prisma typing for `Json` columns expects `Prisma.InputJsonValue`,
+    // which doesn't match the optional-field-rich shape Zod produces from
+    // NodeSchema/EdgeSchema. The values are concretely JSON-serialisable
+    // (validated by Zod above), so this cast is safe at the persistence boundary.
+    const data = {
+      clientId,
+      name,
+      nodes: nodes as unknown as Prisma.InputJsonValue,
+      edges: edges as unknown as Prisma.InputJsonValue,
+    };
     let workflow;
     if (id) {
       // Make sure the row is owned by this clientId before updating.

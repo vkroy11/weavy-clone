@@ -44,3 +44,9 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# prisma — local SQLite scratch DB from when the project was on SQLite.
+# Now that prisma uses postgresql, this file is just a relic if it lingers.
+/prisma/dev.db
+/prisma/dev.db-journal
+/prisma/migrations/dev.db

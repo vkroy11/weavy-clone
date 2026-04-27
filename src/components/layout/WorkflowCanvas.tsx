@@ -3,6 +3,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   Panel,
@@ -168,7 +169,7 @@ const WorkflowCanvas = () => {
         nodeTypes={nodeTypes}
         fitView
       >
-        <Background gap={20} color="#cbd5e1" variant={'dots' as 'dots'} />
+        <Background gap={20} color="#cbd5e1" variant={BackgroundVariant.Dots} />
         <Controls
           position="bottom-left"
           className="!bg-white !border-node-border !shadow-lg !rounded-lg overflow-hidden"

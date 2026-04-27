@@ -4,6 +4,11 @@ import { getGeminiModel, parseBase64Image } from '@/lib/gemini';
 import { createOpenAIClient, generateImageWithOpenAI } from '@/lib/openai';
 import { getModelDefinition } from '@/lib/models';
 
+// Vercel: bump the per-invocation timeout. Default is 10s on Hobby, but
+// Gemini Nano Banana / Imagen requests routinely take 12-25s, so we'd 504.
+// Hobby supports up to 60s when set explicitly via this export.
+export const maxDuration = 60;
+
 const RunWorkflowSchema = z.object({
   model: z.string(),
   provider: z.enum(['gemini', 'openai']),
