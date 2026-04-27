@@ -15,7 +15,9 @@
 - Environments: .env
 
 ✓ Starting...
-✓ Ready in 971ms
- GET / 200 in 936ms (compile: 465ms, render: 471ms)
- GET / 200 in 92ms (compile: 7ms, render: 85ms)
+✓ Ready in 984ms
+ GET /opengraph-image 200 in 1160ms (compile: 686ms, render: 474ms)
+ GET /twitter-image 200 in 373ms (compile: 80ms, render: 294ms)
+ GET /apple-icon 200 in 87ms (compile: 81ms, render: 5ms)
+ GET /manifest.webmanifest 200 in 135ms (compile: 130ms, render: 5ms)
 [?25h
